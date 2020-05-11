@@ -1,0 +1,159 @@
+<!--Checkout-->
+{% extends 'store/main.html' %}
+{% load static %}
+
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6">
+        <div class="box-element" id="form-wrapper">
+            <form id="form">
+                <div id="user-info">
+                    <div class="form-field">
+                        <input required class="form-control" type="text" name="name" placeholder="Name..">
+                    </div>
+                    <div class="form-field">
+                        <input required class="form-control" type="email" name="email" placeholder="Email..">
+                    </div>
+                </div>
+                
+                <div id="shipping-info">
+                    <hr>
+                    <p>Shipping Information:</p>
+                    <hr>
+                    <div class="form-field">
+                        <input class="form-control" type="text" name="address" placeholder="Address..">
+                    </div>
+                    <div class="form-field">
+                        <input class="form-control" type="text" name="city" placeholder="City..">
+                    </div>
+                    <div class="form-field">
+                        <input class="form-control" type="text" name="state" placeholder="State..">
+                    </div>
+                    <div class="form-field">
+                        <input class="form-control" type="text" name="zipcode" placeholder="Zip code..">
+                    </div>
+                </div>
+
+                <hr>
+                <input id="form-button" class="btn btn-success btn-block" type="submit" value="Continue">
+            </form>
+        </div>
+
+        <br>
+        <div class="box-element hidden" id="payment-info">
+            <small>Paypal Options</small>
+            <button id="make-payment">Make payment</button>
+        </div>
+        
+    </div>
+
+    <div class="col-lg-6">
+        <div class="box-element">
+            <a  class="btn btn-outline-dark" href="{% url 'cart' %}">&#x2190; Back to Cart</a>
+            <hr>
+            <h3>Order Summary</h3>
+            <hr>
+            {% for item in items  %}
+                <div class="cart-row">
+                    <div style="flex:2"><img class="row-image" src="{{item.product.imageURL}}"></div>
+                    <div style="flex:2"><p>{{item.product.name}}</p></div>
+                    <div style="flex:1"><p>{{item.product.price|floatformat:2}}</p></div>
+                    <div style="flex:1"><p>{{item.quantity}}</p></div>
+                </div>
+            {% endfor %}
+            
+            <h5>Items:   {{order.get_total_items}}</h5>
+            <h5>Total:   ${{order.get_cart_total|floatformat:2}}</h5>
+        </div>
+    </div>
+</div>
+<script>
+    // we need to get the status of our order object and remove the address
+    // field if shipping is false
+    var shipping = '{{order.shipping}}'
+
+    // we want to take care of the form data
+    var total = "{{order.get_cart_total|floatformat:2}}" //get the total cart
+
+    if (shipping == 'False'){
+        document.getElementById('shipping-info').innerHTML = '' // We won't see the form
+    }
+
+    //When a user adds form data and clicks continue; 
+    //we want to open up the payment option but still let them edit the form
+    var form = document.getElementById('form')
+    form.addEventListener('submit',function(e){
+        e.preventDefault()
+        console.log('Form submitted...')
+        //Hide button & open payment option on submit
+        document.getElementById('form-button').classList.add('hidden')
+        document.getElementById('payment-info').classList.remove('hidden')
+    })
+
+    //Let's add an event handler to the new "payment-submit" 
+    //button and a function to trigger on submission
+    document.getElementById('make-payment').addEventListener('click',function(e){
+        submitFormData()
+    })
+    function submitFormData(){
+        console.log('Payment button clicked ')
+
+        /*We want to send "user" and "shipping" as two 
+        separate Javascript objects so we can access them separately in the backend.*/
+
+        var userFormData = {
+            'name' : null,
+            'email': null,
+            'total' : total,
+        }
+
+        var shippingInfo = {
+            'address' : null,
+            'city': null,
+            'state': null,
+            'zipcode': null,
+        }
+
+        //Now we want to set values for these objects attributes 
+        //on submission before we send it off to the backend
+
+        if (shipping != False) {
+            shippingInfo.address = form.address.value
+            shippingInfo.city = form.city.value
+            shippingInfo.state = form.state.value
+            shippingInfo.zipcode = form.zipcode.value
+        }
+
+        if (user == "AnonymousUser") {
+            userFormData.name = form.name.value
+            userFormData.email = form.email.value
+        }
+
+        console.log('ShippingInfo:', shippingInfo)
+        console.log('User info:', userFormData)
+
+        //we can create a post call and send the data to the backend
+        var url = "/process_order/"
+        fetch(url,{
+            method:'POST',
+            headers: {
+                'Content-Type':'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body:JSON.stringify({'form':userFormData,'shipping': shippingInfo})
+        })
+        .then((response) => response.json())
+        .then((data) => {
+            console.log('Success:',data);
+            alert('Transaction completed');
+
+            // We want to clear the cart
+            cart = {}
+            document.cookie = 'cart=' + JSON.stringify(cart) + ";domain=;path=/"
+            window.location.href = "{% url 'store'%}" // We send back to the home page 
+        })
+    }
+</script>
+{% endblock content %}
+    
