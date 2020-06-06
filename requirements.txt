@@ -47,7 +47,7 @@ decorator==4.4.1
 defusedxml==0.6.0
 diff-match-patch==20181111
 distributed==2.11.0
-Django==3.0.4
+Django==3.0.7
 django-braces==1.14.0
 django-extensions==2.2.9
 docutils==0.16
